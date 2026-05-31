@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetDevOps 自动化平台</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-mode">
+    <div class="app-container">
+        <!-- Sidebar/Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <i class="fa-solid fa-network-wired logo-icon"></i>
+                <div class="logo-text">
+                    <h1>NetDevOps</h1>
+                    <span>自动化运维平台 v1.0</span>
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-badge" id="backendStatus">
+                    <span class="pulse-dot green"></span>
+                    后端: 联机中
+                </div>
+                <div class="status-badge" id="mockStatus">
+                    <span class="pulse-dot blue"></span>
+                    模拟模式: 开启
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard-grid">
+            
+            <!-- Column 1: Devices -->
+            <section class="dashboard-card card-devices">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-server"></i> 设备清单</h2>
+                    <button class="btn btn-icon" id="openAddDeviceModal" title="添加新设备">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="device-list" id="deviceList">
+                        <!-- Loaded dynamically -->
+                        <div class="loading-spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> 加载设备中...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Column 2: Parameters Form -->
+            <section class="dashboard-card card-form">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-sliders"></i> 配置与交付参数</h2>
+                </div>
+                <div class="card-body">
+                    <form id="configForm">
+                        <div class="form-group">
+                            <label for="targetDeviceSelect">目标设备 <span class="required">*</span></label>
+                            <select id="targetDeviceSelect" required>
+                                <option value="" disabled selected>选择执行设备...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="localUser">新建用户名</label>
+                                <input type="text" id="localUser" value="sen" placeholder="请输入用户名">
+                            </div>
+                            <div class="form-group">
+                                <label for="localPassword">新建密码</label>
+                                <input type="password" id="localPassword" value="MyPass123" placeholder="请输入密码">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="privilegeLevel">用户权限等级</label>
+                                <select id="privilegeLevel">
+                                    <option value="1">1 (访问)</option>
+                                    <option value="2">2 (配置)</option>
+                                    <option value="3" selected>3 (管理)</option>
+                                    <option value="15">15 (最高权限)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="ntpServer">NTP 服务器</label>
+                                <input type="text" id="ntpServer" value="10.10.10.10" placeholder="10.10.10.10">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="timezoneName">时区名称</label>
+                                <input type="text" id="timezoneName" value="CET" placeholder="例如: CET, CST">
+                            </div>
+                            <div class="form-group">
+                                <label for="timezoneOffset">时区偏移 (offset)</label>
+                                <input type="text" id="timezoneOffset" value="01:00:00" placeholder="例如: 08:00:00">
+                            </div>
+                        </div>
+
+                        <div class="services-toggle-grid">
+                            <label class="toggle-control">
+                                <input type="checkbox" id="enableSSH" checked>
+                                <span class="control-indicator"></span>
+                                启用 SSH
+                            </label>
+                            <label class="toggle-control">
+                                <input type="checkbox" id="enableTelnet" checked>
+                                <span class="control-indicator"></span>
+                                启用 Telnet
+                            </label>
+                            <label class="toggle-control">
+                                <input type="checkbox" id="enableLLDP" checked>
+                                <span class="control-indicator"></span>
+                                启用 LLDP
+                            </label>
+                            <label class="toggle-control">
+                                <input type="checkbox" id="enableSTP" checked>
+                                <span class="control-indicator"></span>
+                                启用 STP (生成树)
+                            </label>
+                        </div>
+
+                        <div class="actions-section">
+                            <button type="button" class="btn btn-secondary" id="btnPreview" disabled>
+                                <i class="fa-solid fa-eye"></i> 预览命令
+                            </button>
+                            <button type="button" class="btn btn-primary" id="btnRunInit" disabled>
+                                <i class="fa-solid fa-bolt"></i> 下发初始化
+                            </button>
+                            <button type="button" class="btn btn-success" id="btnRunVerify" disabled>
+                                <i class="fa-solid fa-clipboard-check"></i> 执行验证
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Column 3: Terminal Console -->
+            <section class="dashboard-card card-console">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-terminal"></i> 实时日志控制台</h2>
+                    <div class="console-actions">
+                        <button class="btn btn-icon-small" id="btnClearConsole" title="清空控制台">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body console-body">
+                    <pre class="console-output" id="consoleOutput">--- 控制台空闲。请选择设备并下发任务。 ---</pre>
+                </div>
+            </section>
+
+            <!-- Column 4: Verification Grid -->
+            <section class="dashboard-card card-verification">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-square-poll-vertical"></i> 状态验证报告</h2>
+                </div>
+                <div class="card-body">
+                    <div class="verification-grid" id="verificationGrid">
+                        <!-- Verification cards loaded dynamically -->
+                        <div class="empty-verify-state">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <p>尚未运行配置验证。请点击右侧“执行验证”按钮。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Add Device Modal -->
+    <div class="modal-overlay" id="addDeviceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加网络设备</h3>
+                <button class="btn-close" id="closeAddDeviceModal">&times;</button>
+            </div>
+            <form id="addDeviceForm">
+                <div class="form-group">
+                    <label for="devName">设备名称 <span class="required">*</span></label>
+                    <input type="text" id="devName" required placeholder="例如: H3C-Core-01">
+                </div>
+                <div class="form-group">
+                    <label for="devHost">IP 地址 <span class="required">*</span></label>
+                    <input type="text" id="devHost" required placeholder="例如: 192.168.1.1">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="devUser">SSH 用户名 <span class="required">*</span></label>
+                        <input type="text" id="devUser" required value="admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="devPass">SSH 密码 <span class="required">*</span></label>
+                        <input type="password" id="devPass" required value="admin123">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="toggle-control">
+                        <input type="checkbox" id="devIsMock" checked>
+                        <span class="control-indicator"></span>
+                        作为 Mock 模拟设备 (无物理硬件连接时勾选)
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="btnCancelAdd">取消</button>
+                    <button type="submit" class="btn btn-primary">保存设备</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Command Output Modal -->
+    <div class="modal-overlay" id="outputDetailsModal">
+        <div class="modal-content details-modal">
+            <div class="modal-header">
+                <h3 id="detailsTitle">检查命令详情</h3>
+                <button class="btn-close" id="closeDetailsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="details-section">
+                    <h4>执行命令:</h4>
+                    <pre class="code-preview" id="detailsCommand"></pre>
+                </div>
+                <div class="details-section">
+                    <h4>原始输出:</h4>
+                    <pre class="code-preview" id="detailsOutput"></pre>
+                </div>
+                <div class="details-section">
+                    <h4>结果评估:</h4>
+                    <div class="status-indicator" id="detailsEvaluation"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
